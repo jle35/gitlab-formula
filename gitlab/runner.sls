@@ -1,5 +1,3 @@
-# vim: sts=2 ts=2 sw=2 et ai
-#
 {% from "gitlab/map.jinja" import gitlab with context %}
 
 {% if grains['os_family'] == 'Debian' %}
@@ -54,7 +52,6 @@ gitlab-install_runserver3:
       - user: gitlab-install_runserver_create_user
     - require_in:
       - service: gitlab-runner
-
 {% endfor %}
 
 gitlab-runner:
@@ -63,5 +60,3 @@ gitlab-runner:
     - require:
       - pkg: gitlab-install_pkg
       - cmd: gitlab-install_runserver3
-
-
