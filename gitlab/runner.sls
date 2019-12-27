@@ -19,32 +19,45 @@ gitlab-install_pkg:
 gitlab-install_pkg:
   pkg.installed:
     - sources:
-      - gitlab-runner: {{gitlab.runner.downloadpath}}
+      - gitlab-runner: {{gitlab.runners.downloadpath}}
 {% endif %}
+
+gitlab-reinstall_with_good_user:
+  cmd.run:
+    - name: gitlab-runner uninstall && gitlab-runner install -user {{ runner.username }}
+    - require:
+      - pkg: gitlab-install_pkg
+     
+
 
 gitlab-create_group:
   group.present:
-    - name: "gitlab-runner"
+    - name: {{ gitlab.runners.username
     - system: True
     - require:
       - pkg: gitlab-install_pkg
 
 gitlab-install_runserver_create_user:
   user.present:
-    - name: {{gitlab.runner.username}}
+    - name: {{gitlab.runners.username}}
     - shell: /bin/false
-    - home: {{gitlab.runner.home}}
+    - home: {{gitlab.runners.home}}
     - groups:
       - gitlab-runner
     - require:
       - group: gitlab-create_group
 
+{% for runner, runner_name in gitlab.runners }}
 gitlab-install_runserver3:
   cmd.run:
-    - name: "CI_SERVER_URL='{{gitlab.runner.url}}' REGISTRATION_TOKEN='{{gitlab.runner.token}}' RUNNER_EXECUTOR='{{gitlab.runner.executor}}' /usr/bin/gitlab-runner  register --non-interactive"
-    - creates: /etc/gitlab-runner/config.toml
+    - name: "CI_SERVER_URL='{{runner.url}}' REGISTRATION_TOKEN='{{runner.token}}' RUNNER_EXECUTOR='{{runner.executor}}' /usr/bin/gitlab-runner  register --non-interactive --builds-dir '{{ runner.home }}' --name {{ gitlab.runner.name }} "
+    - onlyif: gitlab-runner verify -n {{ runner_name }}
     - require:
       - user: gitlab-install_runserver_create_user
+    - require_in:
+      - service: - gitlab-runner
+
+{% endfor %}
 
 gitlab-runner:
   service.running:
@@ -52,3 +65,5 @@ gitlab-runner:
     - require:
       - pkg: gitlab-install_pkg
       - cmd: gitlab-install_runserver3
+
+
