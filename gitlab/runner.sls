@@ -20,7 +20,8 @@ gitlab-install_pkg:
       - gitlab-runner: {{gitlab.runner.downloadpath}}
 {% endif %}
 
-gitlab-reinstall_with_good_user:
+# reinstall service with proper user
+gitlab-reinstall:
   cmd.run:
     - name: gitlab-runner uninstall && gitlab-runner install -user {{ gitlab.runner.username }}
     - require:
@@ -60,3 +61,5 @@ gitlab-runner:
     - require:
       - pkg: gitlab-install_pkg
       - cmd: gitlab-install_runserver3
+    - watch:
+      - cmd: gitlab-reinstall
