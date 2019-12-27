@@ -19,41 +19,41 @@ gitlab-install_pkg:
 gitlab-install_pkg:
   pkg.installed:
     - sources:
-      - gitlab-runner: {{gitlab.runners.downloadpath}}
+      - gitlab-runner: {{gitlab.runner.downloadpath}}
 {% endif %}
 
 gitlab-reinstall_with_good_user:
   cmd.run:
-    - name: gitlab-runner uninstall && gitlab-runner install -user {{ gitlab.runners.username }}
+    - name: gitlab-runner uninstall && gitlab-runner install -user {{ gitlab.runner.username }}
     - require:
       - pkg: gitlab-install_pkg
 
 gitlab-create_group:
   group.present:
-    - name: {{ gitlab.runners.username
+    - name: {{ gitlab.runner.username }}
     - system: True
     - require:
       - pkg: gitlab-install_pkg
 
 gitlab-install_runserver_create_user:
   user.present:
-    - name: {{gitlab.runners.username}}
+    - name: {{gitlab.runner.username}}
     - shell: /bin/false
-    - home: {{gitlab.runners.home}}
+    - home: {{gitlab.runner.home}}
     - groups:
       - gitlab-runner
     - require:
       - group: gitlab-create_group
 
-{% for runner, runner_name in gitlab.runners }}
+{% for runner_name, runner in gitlab.runner.runners.items() %}
 gitlab-install_runserver3:
   cmd.run:
-    - name: "CI_SERVER_URL='{{runner.url}}' REGISTRATION_TOKEN='{{runner.token}}' RUNNER_EXECUTOR='{{runner.executor}}' /usr/bin/gitlab-runner  register --non-interactive --builds-dir '{{ runner.home }}' --name {{ runner.name }} "
-    - onlyif: gitlab-runner verify -n {{ runner_name }}
+    - name: "/usr/bin/gitlab-runner register --non-interactive {% for arg, val in runner.items() %} --{{arg}} '{{ val }}' {% endfor %} --name {{ runner_name }}"
+    - unless: gitlab-runner verify -n {{ runner_name }}
     - require:
       - user: gitlab-install_runserver_create_user
     - require_in:
-      - service: - gitlab-runner
+      - service: gitlab-runner
 
 {% endfor %}
 
