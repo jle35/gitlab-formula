@@ -24,11 +24,9 @@ gitlab-install_pkg:
 
 gitlab-reinstall_with_good_user:
   cmd.run:
-    - name: gitlab-runner uninstall && gitlab-runner install -user {{ runner.username }}
+    - name: gitlab-runner uninstall && gitlab-runner install -user {{ gitlab.runners.username }}
     - require:
       - pkg: gitlab-install_pkg
-     
-
 
 gitlab-create_group:
   group.present:
@@ -50,7 +48,7 @@ gitlab-install_runserver_create_user:
 {% for runner, runner_name in gitlab.runners }}
 gitlab-install_runserver3:
   cmd.run:
-    - name: "CI_SERVER_URL='{{runner.url}}' REGISTRATION_TOKEN='{{runner.token}}' RUNNER_EXECUTOR='{{runner.executor}}' /usr/bin/gitlab-runner  register --non-interactive --builds-dir '{{ runner.home }}' --name {{ gitlab.runner.name }} "
+    - name: "CI_SERVER_URL='{{runner.url}}' REGISTRATION_TOKEN='{{runner.token}}' RUNNER_EXECUTOR='{{runner.executor}}' /usr/bin/gitlab-runner  register --non-interactive --builds-dir '{{ runner.home }}' --name {{ runner.name }} "
     - onlyif: gitlab-runner verify -n {{ runner_name }}
     - require:
       - user: gitlab-install_runserver_create_user
