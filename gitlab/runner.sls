@@ -26,7 +26,7 @@ gitlab-runner_unregister:
     - require:
       - pkg: gitlab-install_pkg
 
-{% for service_name, service in gitlab.runner.services.items() %}
+{% for service_name, service in gitlab.runner.services.items() if gitlab.runner.services %}
 {% set group = service.group|default(service.username, true) %}
 {% set home = service.home|default("/home/" ~ service.username, true) %}
 {% set working_directory = service.working_directory|default(home, true) %}
@@ -37,7 +37,6 @@ gitlab-runner-uninstall_{{ service_name }}:
     - name: gitlab-runner uninstall --service {{ service_name }}
     - onlyif: gitlab-runner restart --service {{ service_name }} 
     - require:
-      - pkg: gitlab-install_pkg
       - cmd: gitlab-runner_unregister
 
 gitlab-runner-install_{{ service_name }}:
@@ -63,7 +62,7 @@ gitlab-install_runserver_create_user_{{ service_name }}_{{ service.username }}:
     - require:
       - group: gitlab-create_group_{{ service_name }}_{{ group }}
 
-{% for runner_name, runner in service.runners.items() %}
+{% for runner_name, runner in service.runners.items() if service.runners %}
 gitlab-install_runserver3_{{ service_name }}_{{ runner_name }}:
   cmd.run:
     - name: "/usr/bin/gitlab-runner register --non-interactive {% for arg, val in runner.items() %} --{{arg}} '{{ val }}' {% endfor %} --name {{ runner_name }}"
@@ -82,4 +81,10 @@ gitlab-service_{{ service_name }}:
       - pkg: gitlab-install_pkg
     - watch:
       - cmd: gitlab-runner-install_{{ service_name }}
+    - require_in:
+      - cmd: gitlab-runner_delete
 {% endfor %}
+
+gitlab-runner_delete:
+  cmd.run:
+    - name: gitlab-runner verify --delete
