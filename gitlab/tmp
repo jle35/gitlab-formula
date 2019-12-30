@@ -1,0 +1,187 @@
+local:
+----------
+          ID: gitlab-runner repo
+    Function: pkgrepo.managed
+        Name: deb https://packages.gitlab.com/runner/gitlab-runner/debian/ stretch main
+      Result: True
+     Comment: Package repo 'deb https://packages.gitlab.com/runner/gitlab-runner/debian/ stretch main' already configured
+     Started: 00:26:40.583881
+    Duration: 45.966 ms
+     Changes:   
+----------
+          ID: gitlab-install_pkg
+    Function: pkg.installed
+        Name: gitlab-runner
+      Result: True
+     Comment: All specified packages are already installed
+     Started: 00:26:41.515089
+    Duration: 41.581 ms
+     Changes:   
+----------
+          ID: gitlab-runner-uninstall_bird-runner
+    Function: cmd.run
+        Name: gitlab-runner uninstall --service bird-runner
+      Result: True
+     Comment: Command "gitlab-runner uninstall --service bird-runner" run
+     Started: 00:26:41.558878
+    Duration: 198.18 ms
+     Changes:   
+              ----------
+              pid:
+                  20955
+              retcode:
+                  0
+              stderr:
+                  Runtime platform                                  ?[0;m  arch?[0;m=amd64 os?[0;m=linux pid?[0;m=20955 revision?[0;m=ac8e767a version?[0;m=12.6.0
+              stdout:
+----------
+          ID: gitlab-runner-install_bird-runner
+    Function: cmd.run
+        Name: gitlab-runner install -user bird --service bird-runner
+      Result: True
+     Comment: Command "gitlab-runner install -user bird --service bird-runner" run
+     Started: 00:26:41.758108
+    Duration: 250.515 ms
+     Changes:   
+              ----------
+              pid:
+                  20974
+              retcode:
+                  0
+              stderr:
+                  Runtime platform                                  ?[0;m  arch?[0;m=amd64 os?[0;m=linux pid?[0;m=20974 revision?[0;m=ac8e767a version?[0;m=12.6.0
+              stdout:
+----------
+          ID: gitlab-create_group_bird-runner_bird
+    Function: group.present
+        Name: bird
+      Result: True
+     Comment: Group bird is present and up to date
+     Started: 00:26:42.009994
+    Duration: 0.681 ms
+     Changes:   
+----------
+          ID: gitlab-install_runserver_create_user_bird-runner_bird
+    Function: user.present
+        Name: bird
+      Result: True
+     Comment: User bird is present and up to date
+     Started: 00:26:42.013478
+    Duration: 1.438 ms
+     Changes:   
+----------
+          ID: gitlab-install_runserver3_bird-runner_shell-runner
+    Function: cmd.run
+        Name: /usr/bin/gitlab-runner register --non-interactive  --url 'https://gitlab.skazy.name'  --registration-token 'FzgogQWyhV44oxjyp7Bz'  --executor 'shell'  --name shell-runner
+      Result: True
+     Comment: unless condition is true
+     Started: 00:26:42.015643
+    Duration: 278.314 ms
+     Changes:   
+----------
+          ID: gitlab-install_runserver3_bird-runner_test-runner
+    Function: cmd.run
+        Name: /usr/bin/gitlab-runner register --non-interactive  --url 'https://gitlab.skazy.name'  --registration-token 'FzgogQWyhV44oxjyp7Bz'  --executor 'shell'  --name test-runner
+      Result: True
+     Comment: unless condition is true
+     Started: 00:26:42.294640
+    Duration: 254.963 ms
+     Changes:   
+----------
+          ID: gitlab-runner_bird-runner
+    Function: service.running
+      Result: False
+     Comment: The following requisites were not found:
+                                 watch:
+                                     cmd: gitlab-install_bird-runner
+     Started: 00:26:42.552735
+    Duration: 0.015 ms
+     Changes:   
+----------
+          ID: gitlab-runner-uninstall_prout-runner
+    Function: cmd.run
+        Name: gitlab-runner uninstall --service prout-runner
+      Result: True
+     Comment: Command "gitlab-runner uninstall --service prout-runner" run
+     Started: 00:26:42.552956
+    Duration: 213.401 ms
+     Changes:   
+              ----------
+              pid:
+                  21025
+              retcode:
+                  0
+              stderr:
+                  Runtime platform                                  ?[0;m  arch?[0;m=amd64 os?[0;m=linux pid?[0;m=21025 revision?[0;m=ac8e767a version?[0;m=12.6.0
+              stdout:
+----------
+          ID: gitlab-runner-install_prout-runner
+    Function: cmd.run
+        Name: gitlab-runner install -user prout --service prout-runner
+      Result: True
+     Comment: Command "gitlab-runner install -user prout --service prout-runner" run
+     Started: 00:26:42.767622
+    Duration: 238.746 ms
+     Changes:   
+              ----------
+              pid:
+                  21044
+              retcode:
+                  0
+              stderr:
+                  Runtime platform                                  ?[0;m  arch?[0;m=amd64 os?[0;m=linux pid?[0;m=21044 revision?[0;m=ac8e767a version?[0;m=12.6.0
+              stdout:
+----------
+          ID: gitlab-create_group_prout-runner_prout_group
+    Function: group.present
+        Name: prout_group
+      Result: True
+     Comment: Group prout_group is present and up to date
+     Started: 00:26:43.007054
+    Duration: 0.759 ms
+     Changes:   
+----------
+          ID: gitlab-install_runserver_create_user_prout-runner_prout
+    Function: user.present
+        Name: prout
+      Result: True
+     Comment: User prout is present and up to date
+     Started: 00:26:43.008640
+    Duration: 1.465 ms
+     Changes:   
+----------
+          ID: gitlab-install_runserver3_prout-runner_bird-runner
+    Function: cmd.run
+        Name: /usr/bin/gitlab-runner register --non-interactive  --url 'https://gitlab.skazy.name'  --registration-token 'FzgogQWyhV44oxjyp7Bz'  --executor 'shell'  --name bird-runner
+      Result: True
+     Comment: unless condition is true
+     Started: 00:26:43.010778
+    Duration: 264.109 ms
+     Changes:   
+----------
+          ID: gitlab-install_runserver3_prout-runner_test-runner
+    Function: cmd.run
+        Name: /usr/bin/gitlab-runner register --non-interactive  --url 'https://gitlab.skazy.name'  --registration-token 'FzgogQWyhV44oxjyp7Bz'  --executor 'shell'  --name test-runner
+      Result: True
+     Comment: unless condition is true
+     Started: 00:26:43.275609
+    Duration: 262.842 ms
+     Changes:   
+----------
+          ID: gitlab-runner_prout-runner
+    Function: service.running
+      Result: False
+     Comment: The following requisites were not found:
+                                 watch:
+                                     cmd: gitlab-install_prout-runner
+     Started: 00:26:43.540618
+    Duration: 0.015 ms
+     Changes:   
+
+Summary for local
+-------------
+Succeeded: 14 (changed=4)
+Failed:     2
+-------------
+Total states run:     16
+Total run time:    2.053 s

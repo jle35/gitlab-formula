@@ -1,0 +1,40 @@
+# vim: sts=2 ts=2 sw=2 et ai
+{% import_yaml "gitlab/defaults.yaml" or {} as defaults %}
+{% import_yaml "gitlab/osfamilymap.yaml" or {} as osfamilymap %}
+
+
+{%- set merged_defaults = salt['grains.filter_by'](defaults,
+    default='gitlab',
+    merge=salt['grains.filter_by'](osfamilymap, grain='os_family',
+      merge=salt['pillar.get']('gitlab:lookup', default={})
+    )
+) %}
+
+{#- Merge the gitlab pillar #}
+{%- set gitlab = salt['pillar.get']('gitlab', default=merged_defaults, merge=True) %}
+
+#{% set gitlab  = salt['grains.filter_by']({
+#  'Debian': {
+#    'runner':{
+#      'services':{
+#        'gitlab-runner':{
+#          'username': 'gitlab-runner',
+#          'home': '/home/gitlab-runner',
+#          'runners':{
+#            'gitlab-runner':{
+#              'executor': 'shell'
+#            }
+#          }
+#        } 
+#      }
+#    }
+#  },
+#  'default': {
+#    'runner':{
+#      'username': 'gitlab-runner',
+#      'downloadpath': 'https://packages.gitlab.com/runner/gitlab-runner/packages/linuxmint/sonya/gitlab-runner_10.4.0_amd64.deb/download',
+#      'home': '/home/gitlab-runner',
+#      'executor': 'shell',
+#    }
+#  },
+#}, merge=salt['pillar.get']('gitlab')) %}
