@@ -20,6 +20,14 @@ gitlab-install_pkg:
       - gitlab-runner: {{gitlab.runner.downloadpath}}
 {% endif %}
 
+{% set list = salt['cmd.run']('gitlab-runner --log-format "text" list 2>&1 | grep Token') %}
+{%- for value in list %}
+{% endfor %}
+
+gitlab-runner_list:
+  cmd.run:
+    - name: gitlab-runner --log-format text list 2>&1 | grep Executor
+
 gitlab-runner_unregister:
   cmd.run:
     - name: gitlab-runner unregister --all-runners
@@ -41,7 +49,7 @@ gitlab-runner-uninstall_{{ service_name }}:
 
 gitlab-runner-install_{{ service_name }}:
   cmd.run:
-    - name: gitlab-runner install -user {{ service.username }} --service {{ service_name }} --working-directory {{ working_directory }}
+    - name: gitlab-runner install -user {{ service.username }} --service {{ service_name }} --working-directory {{ working_directory }} --config /etc/gitlab-runner/config_{{service_name}}
     - watch:
       - cmd: gitlab-runner-uninstall_{{ service_name }}
 
@@ -65,7 +73,7 @@ gitlab-install_runserver_create_user_{{ service_name }}_{{ service.username }}:
 {% for runner_name, runner in service.runners.items() if service.runners %}
 gitlab-install_runserver3_{{ service_name }}_{{ runner_name }}:
   cmd.run:
-    - name: "/usr/bin/gitlab-runner register --non-interactive {% for arg, val in runner.items() %} --{{arg}} '{{ val }}' {% endfor %} --name {{ runner_name }}"
+    - name: "/usr/bin/gitlab-runner register --non-interactive {% for arg, val in runner.items() %} --{{arg}} '{{ val }}' {% endfor %} --name {{ runner_name }} -c /etc/gitlab-runner/config_{{ service_name }}"
     - unless: gitlab-runner verify -n {{ runner_name }}
     - require:
       - user: gitlab-install_runserver_create_user_{{ service_name }}_{{ service.username }}
