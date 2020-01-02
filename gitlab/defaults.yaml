@@ -3,4 +3,5 @@
 ---
 gitlab:
   runner:
-    downloadpath: 'https://packages.gitlab.com/runner/gitlab-runner/packages/linuxmint/sonya/gitlab-runner_10.4.0_amd64.deb/download'
+    gitlab-runner:
+      downloadpath: 'https://packages.gitlab.com/runner/gitlab-runner/packages/linuxmint/sonya/gitlab-runner_10.4.0_amd64.deb/download'

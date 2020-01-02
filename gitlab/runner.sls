@@ -20,32 +20,37 @@ gitlab-install_pkg:
       - gitlab-runner: {{gitlab.runner.downloadpath}}
 {% endif %}
 
-{% set list = salt['cmd.run']('gitlab-runner --log-format "text" list 2>&1 | grep Token') %}
-{%- for value in list %}
-{% endfor %}
 
-gitlab-runner_list:
-  cmd.run:
-    - name: gitlab-runner --log-format text list 2>&1 | grep Executor
-
-gitlab-runner_unregister:
-  cmd.run:
-    - name: gitlab-runner unregister --all-runners
-    - require:
-      - pkg: gitlab-install_pkg
-
-{% for service_name, service in gitlab.runner.services.items() if gitlab.runner.services %}
+{% for service_name, service in gitlab.runner.items() %}
 {% set group = service.group|default(service.username, true) %}
 {% set home = service.home|default("/home/" ~ service.username, true) %}
 {% set working_directory = service.working_directory|default(home, true) %}
 
+{% if salt['file.file_exists']('/etc/gitlab-runner/{{ service_name }}') %}
+{% set obj =  salt['slsutil.deserialize']('toml', salt['file.read']('/etc/gitlab-runner/{{ service_name }}.toml')) %}
+{% set list = [] %}{% for runner in obj.runners %}{% do list.append(runner.name) %}{% endfor %}
+
+{% for runner in salt['pillar.get']('gitlab:ru:{{ service_name }}:runners') %}
+  {% if runner.name not in list %}
+    {% do salt.log.warning("matchhhhhhhhhhhhhhhhhhh" ~ runner.name) %}
+gitlab-runner_unregister_{{ runner.name }}:
+  cmd.run:
+    - name: gitlab-runner unregister -n {{ runner.name }}
+    - require:
+      - pkg: gitlab-install_pkg
+    - require_in:
+      cmd: gitlab-runner-uninstall_{{ service_name }}
+
+  {% endif %}
+{% do salt.log.warning("runner :" ~ runner.name) %}
+{%endfor%}
+
+{% endif %}
 # reinstall service with proper user
 gitlab-runner-uninstall_{{ service_name }}:
   cmd.run:
     - name: gitlab-runner uninstall --service {{ service_name }}
     - onlyif: gitlab-runner restart --service {{ service_name }} 
-    - require:
-      - cmd: gitlab-runner_unregister
 
 gitlab-runner-install_{{ service_name }}:
   cmd.run:
@@ -64,17 +69,17 @@ gitlab-install_runserver_create_user_{{ service_name }}_{{ service.username }}:
   user.present:
     - name: {{service.username}}
     - shell: /bin/false
-    - home: {{ home }}
+    - home: /home/bird
     - groups:
       - {{ group }}
     - require:
       - group: gitlab-create_group_{{ service_name }}_{{ group }}
 
-{% for runner_name, runner in service.runners.items() if service.runners %}
-gitlab-install_runserver3_{{ service_name }}_{{ runner_name }}:
+{% for runner in service.runners if service.runners %}
+gitlab-install_runserver3_{{ service_name }}_{{ runner.name }}:
   cmd.run:
-    - name: "/usr/bin/gitlab-runner register --non-interactive {% for arg, val in runner.items() %} --{{arg}} '{{ val }}' {% endfor %} --name {{ runner_name }} -c /etc/gitlab-runner/config_{{ service_name }}"
-    - unless: gitlab-runner verify -n {{ runner_name }}
+    - name: "/usr/bin/gitlab-runner register --non-interactive {% for arg, val in runner.items() %} --{{arg}} '{{ val }}' {% endfor %} --name {{ runner.name }} -c /etc/gitlab-runner/config_{{ service_name }}"
+    - unless: gitlab-runner verify -n {{ runner.name }}
     - require:
       - user: gitlab-install_runserver_create_user_{{ service_name }}_{{ service.username }}
     - require_in:
