@@ -1,0 +1,18 @@
+#!/bin/sh
+/usr/bin/gitlab-runner register --non-interactive \
+{% for arg, val in runner.items() -%}
+	{% if val is iterable and val is not string -%}
+		{% for a, v in val.items() -%}
+			{% if v is iterable and v is not string -%}
+				{% for b, w in v.items() -%}
+					--{{arg}}-{{a}}-{{b}} '{{ w }}' \
+				{% endfor -%}
+			{% else -%}
+				--{{arg}}-{{a}} '{{ v }}' \
+			{% endif -%}
+		{% endfor -%}
+	{% else -%}
+		--{{ arg }} '{{ val }}' \
+	{% endif -%}
+	{%- endfor %}
+	-c /etc/gitlab-runner/{{ service_name }}.toml

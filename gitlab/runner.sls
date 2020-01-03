@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 {% from "gitlab/map.jinja" import gitlab with context %}
 
 {% if grains['os_family'] == 'Debian' %}
@@ -20,17 +21,17 @@ gitlab-install_pkg:
       - gitlab-runner: {{gitlab.runner.downloadpath}}
 {% endif %}
 
-gitlab-runner_unregister:
+{%- for service_name, service in gitlab.runner.items() %}
+{%- do salt.log.warning(service) %}
+{%- set group = service.group|default(service.username, true) %}
+{%- set home = service.home|default("/home/" ~ service.username, true) %}
+{%- set working_directory = service.working_directory|default(home, true) %}
+
+gitlab-runner_unregister_{{ service_name }}:
   cmd.run:
-    - name: gitlab-runner unregister --all-runners
+    - name: gitlab-runner unregister --all-runners -c /etc/gitlab-runner/{{ service_name }}.toml
     - require:
       - pkg: gitlab-install_pkg
-
-{% for service_name, service in gitlab.runner.items() %}
-{% do salt.log.warning(service) %}
-{% set group = service.group|default(service.username, true) %}
-{% set home = service.home|default("/home/" ~ service.username, true) %}
-{% set working_directory = service.working_directory|default(home, true) %}
 
 # reinstall service with proper user
 gitlab-runner-uninstall_{{ service_name }}:
@@ -38,11 +39,11 @@ gitlab-runner-uninstall_{{ service_name }}:
     - name: gitlab-runner uninstall --service {{ service_name }}
     - onlyif: gitlab-runner restart --service {{ service_name }} 
     - require:
-      - cmd: gitlab-runner_unregister
+      - cmd: gitlab-runner_unregister_{{ service_name }}
 
 gitlab-runner-install_{{ service_name }}:
   cmd.run:
-    - name: gitlab-runner install -user {{ service.username }} --service {{ service_name }} --working-directory {{ working_directory }} --config /etc/gitlab-runner/config_{{service_name}}
+    - name: gitlab-runner install -user {{ service.username }} --service {{ service_name }} --working-directory {{ working_directory }} --config /etc/gitlab-runner/{{service_name}}.toml
     - watch:
       - cmd: gitlab-runner-uninstall_{{ service_name }}
 
@@ -65,8 +66,12 @@ gitlab-install_runserver_create_user_{{ service_name }}_{{ service.username }}:
 
 {% for runner in service.runners if service.runners %}
 gitlab-install_runserver3_{{ service_name }}_{{ runner.name }}:
-  cmd.run:
-    - name: "/usr/bin/gitlab-runner register --non-interactive {% for arg, val in runner.items() %} --{{arg}} '{{ val }}' {% endfor %} --name {{ runner.name }} -c /etc/gitlab-runner/config_{{ service_name }}"
+  cmd.script:
+    - name: salt://gitlab/scripts/runner-register.sh.j2
+    - template: jinja
+    - context:
+      runner: {{ runner | yaml }}
+      service_name: {{ service_name }}
     - unless: gitlab-runner verify -n {{ runner.name }}
     - require:
       - user: gitlab-install_runserver_create_user_{{ service_name }}_{{ service.username }}
