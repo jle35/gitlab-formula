@@ -87,15 +87,15 @@ gitlab-runner-template_{{ service_name }}_{{ runner.name }}:
     - require_in:
       - service: gitlab-service_{{ service_name}}
 
-gitlab-runner-unregister_{{ service_name }}_{{ runner.name }}:
-  cmd.run:
-    - name: gitlab-runner unregister -n {{ runner.name }} -c /etc/gitlab-runner/{{ service_name }}.toml
-    - success_retcodes:
-      - 1
-    - onchanges:
-      - file: gitlab-runner-template_{{ service_name }}_{{ runner.name }}
-    - require_in:
-      - cmd: gitlab-runner-register_{{ service_name }}_{{ runner.name }}
+#gitlab-runner-unregister_{{ service_name }}_{{ runner.name }}:
+#  cmd.run:
+#    - name: gitlab-runner unregister -n {{ runner.name }} -c /etc/gitlab-runner/{{ service_name }}.toml
+#    - success_retcodes:
+#      - 1
+#    - onchanges:
+#      - file: gitlab-runner-template_{{ service_name }}_{{ runner.name }}
+#    - require_in:
+#      - cmd: gitlab-runner-register_{{ service_name }}_{{ runner.name }}
 
 gitlab-runner-register_{{ service_name }}_{{ runner.name }}:
   cmd.script:
@@ -136,8 +136,9 @@ giitlab-runner-unregister_{{ i_runner_name }}:
   cmd.run:
     - name: gitlab-runner unregister -n {{ i_runner_name }} -c /etc/gitlab-runner/{{ i_runner_service }}.toml
 
-{{ i_runner}}:
-  file.absent
+remove-register-template_{{ i_runner_name }}
+  file.absent:
+  - name: {{ i_runner}}
 
   {%- endif %}
 {%- endfor %}
