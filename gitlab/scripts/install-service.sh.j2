@@ -1,0 +1,3 @@
+#!/bin/sh
+
+gitlab-runner install -user {{ service.username }} --service {{ service_name }} --working-directory {{ working_directory }} --config /etc/gitlab-runner/{{service_name}}.toml
