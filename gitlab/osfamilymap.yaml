@@ -2,5 +2,6 @@
 # vim: ft=yaml
 ---
 
-Debian:
-
+Freebsd:
+  runner:
+    config_path: /usr/local/etc/gitlab-runner/

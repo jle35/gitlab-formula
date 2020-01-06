@@ -38,7 +38,7 @@ gitlab-runner-uninstall_{{ service_name }}:
 
 gitlab-runner-install-template_{{ service_name }}:
   file.managed:
-    - name: /etc/gitlab-runner/install-{{service_name }}.sh
+    - name: {{ gitlab.runner.config_path }}install-{{service_name }}.sh
     - mode: 700
     - source: salt://gitlab/scripts/install-service.sh.j2
     - template: jinja
@@ -49,7 +49,7 @@ gitlab-runner-install-template_{{ service_name }}:
 
 gitlab-runner-install_{{ service_name }}:
   cmd.script:
-    - name: /etc/gitlab-runner/install-{{ service_name }}.sh
+    - name: {{ gitlab.runner.config_path }}install-{{ service_name }}.sh
     - require:
       - cmd: gitlab-runner-uninstall_{{ service_name }}
     - onchanges:
@@ -75,7 +75,7 @@ gitlab-install_runserver_create_user_{{ service_name }}_{{ service.username }}:
 {% for runner in service.runners if service.runners %}
 gitlab-runner-template_{{ service_name }}_{{ runner.name }}:
   file.managed:
-    - name: /etc/gitlab-runner/runner-register-{{ service_name }}_{{ runner.name }}
+    - name: {{ gitlab.runner.config_path }}runner-register-{{ service_name }}_{{ runner.name }}
     - source: salt://gitlab/scripts/runner-register.sh.j2
     - template: jinja
     - mode: 700
@@ -87,19 +87,9 @@ gitlab-runner-template_{{ service_name }}_{{ runner.name }}:
     - require_in:
       - service: gitlab-service_{{ service_name}}
 
-#gitlab-runner-unregister_{{ service_name }}_{{ runner.name }}:
-#  cmd.run:
-#    - name: gitlab-runner unregister -n {{ runner.name }} -c /etc/gitlab-runner/{{ service_name }}.toml
-#    - success_retcodes:
-#      - 1
-#    - onchanges:
-#      - file: gitlab-runner-template_{{ service_name }}_{{ runner.name }}
-#    - require_in:
-#      - cmd: gitlab-runner-register_{{ service_name }}_{{ runner.name }}
-
 gitlab-runner-register_{{ service_name }}_{{ runner.name }}:
   cmd.script:
-    - name: /etc/gitlab-runner/runner-register-{{ service_name }}_{{ runner.name }}
+    - name: {{ gitlab.runner.config_path }}runner-register-{{ service_name }}_{{ runner.name }}
     - require:
       - user: gitlab-install_runserver_create_user_{{ service_name }}_{{ service.username }}
     - require_in:
@@ -118,7 +108,7 @@ gitlab-service_{{ service_name }}:
       - cmd: gitlab-runner-install_{{ service_name }}
 {% endfor %}
 
-{% set installed_runners = salt['file.find']("/etc/gitlab-runner/", regex="runner-register") %}
+{% set installed_runners = salt['file.find']("{{ gitlab.runner.config_path }}", regex="runner-register") %}
 {% for i_runner in installed_runners %}
 
   {%- set keep_alive = {'value': False} %}
@@ -134,7 +124,7 @@ gitlab-service_{{ service_name }}:
   {%- if keep_alive.value == False %}
 giitlab-runner-unregister_{{ i_runner_name }}:
   cmd.run:
-    - name: gitlab-runner unregister -n {{ i_runner_name }} -c /etc/gitlab-runner/{{ i_runner_service }}.toml
+    - name: gitlab-runner unregister -n {{ i_runner_name }} -c {{ gitlab.runner.config_path }}{{ i_runner_service }}.toml
 
 remove-register-template_{{ i_runner_name }}
   file.absent:
