@@ -20,6 +20,10 @@ gitlab-install_pkg:
       - gitlab-runner: {{gitlab.runner.downloadpath}}
 {% endif %}
 
+gitlab-instal-pytoml:
+  pkg.installed:
+    - name: {{ gitlab.runner.pytoml }}
+
 gitlab-runner-directory-services:
   file.directory:
     - name: {{ gitlab.runner.config_path }}/salt/services
@@ -32,11 +36,7 @@ gitlab-runner-directory-runners:
 
 {% set installed_services = salt['file.find'](gitlab.runner.config_path ~ "/salt/services/", print="name") %}
 {% set services = gitlab.runner.services | map(attribute='name')|list %}
-{% do salt.log.warning("installed_services : " ~ installed_services) %}
-{% do salt.log.warning("services : " ~ services) %}
-{% do salt.log.warning("diff services : " ~ installed_services | difference(services)) %}
 {% set ss = installed_services | difference(services) %}
-{% do salt.log.warning("ss : " ~ ss) %}
 {% for uneeded_service in ss if ss[0]  %}
 gitlab-runner-uninstall-uneeded_{{ uneeded_service }}:
   cmd.run:

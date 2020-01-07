@@ -4,4 +4,5 @@
 
 FreeBSD:
   runner:
+    pytoml: py-toml
     config_path: /usr/local/etc/gitlab-runner/

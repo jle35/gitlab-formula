@@ -3,6 +3,7 @@
 ---
 gitlab:
   runner:
+    pytoml: python-pytoml
     config_path: /etc/gitlab-runner
     services:
       - name: gitlab-runner
