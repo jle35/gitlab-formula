@@ -2,6 +2,6 @@
 # vim: ft=yaml
 ---
 
-Freebsd:
+FreeBSD:
   runner:
     config_path: /usr/local/etc/gitlab-runner/

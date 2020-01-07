@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
-# # vim: ft=yaml
+# vim: ft=yaml
 ---
 gitlab:
   runner:
-    config_path: /etc/gitlab-runner/
-    gitlab-runner:
-      downloadpath: 'https://packages.gitlab.com/runner/gitlab-runner/packages/linuxmint/sonya/gitlab-runner_10.4.0_amd64.deb/download'
+    config_path: /etc/gitlab-runner
+    services:
+      - name: gitlab-runner
+        username: gitlab-runner
+        downloadpath: 'https://packages.gitlab.com/runner/gitlab-runner/packages/linuxmint/sonya/gitlab-runner_10.4.0_amd64.deb/download'
+        runners:
+          - gitlab-runner:
+            executor: shell

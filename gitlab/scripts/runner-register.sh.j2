@@ -14,9 +14,9 @@
         --{{arg}}-{{a}}{{ separator(v) }}'{{ v }}' \
       {%- endif -%}
     {% endfor -%}
-  {% else %}
+  {%- else %}
     --{{ arg }}{{ separator(val) }}'{{ val }}' \
   {%- endif %}
 {%- endfor %}
--c /etc/gitlab-runner/{{ service_name }}.toml
+-c /etc/gitlab-runner/{{ service.name }}.toml
 
