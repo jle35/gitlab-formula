@@ -52,6 +52,7 @@ gitlab-runner-remove-uneeded_{{ uneeded_service }}:
 {%- set group = service.group|default(service.username, true) %}
 {%- set home = service.home|default("/home/" ~ service.username, true) %}
 {%- set working_directory = service.working_directory|default(home, true) %}
+{%- set create_user = service.create_user|default(true) %}
 # reinstall service with proper user
 
 
@@ -81,13 +82,13 @@ gitlab-runner-install_{{ service.name }}:
     - onchanges:
       - file: gitlab-runner-install-template_{{ service.name }}
 
+{% if create_user == true %}
 gitlab-create_group_{{service.name }}_{{ group }}:
   group.present:
     - name: {{ group }}
     - system: True
     - require:
       - pkg: gitlab-install_pkg
-
 gitlab-install_runserver_create_user_{{ service.name }}_{{ service.username }}:
   user.present:
     - name: {{service.username}}
@@ -97,6 +98,7 @@ gitlab-install_runserver_create_user_{{ service.name }}_{{ service.username }}:
       - {{ group }}
     - require:
       - group: gitlab-create_group_{{ service.name }}_{{ group }}
+{% endif %}
 
 {% for runner in service.runners if service.runners %}
 {% if salt['file.file_exists'](gitlab.runner.config_path ~ '/salt/runners/' ~  service.name ~ '_' ~ runner.name) %}
@@ -122,16 +124,16 @@ gitlab-runner-template_{{ service.name }}_{{ runner.name }}:
     - context:
       runner: {{ runner | yaml }}
       service: {{ service | yaml }} 
+    {% if create_user == true %}
     - require:
       - user: gitlab-install_runserver_create_user_{{ service.name }}_{{ service.username }}
+    {% endif %}
     - require_in:
       - service: gitlab-service_{{ service.name}}
 
 gitlab-runner-register_{{ service.name }}_{{ runner.name }}:
   cmd.script:
     - name: {{ gitlab.runner.config_path }}/salt/runners/{{ service.name }}_{{ runner.name }}
-    - require:
-      - user: gitlab-install_runserver_create_user_{{ service.name }}_{{ service.username }}
     - require_in:
       - service: gitlab-service_{{ service.name}}
     - onchanges:
