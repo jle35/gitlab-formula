@@ -1,6 +1,10 @@
-# -*- coding: utf-8 -*-
 {% from "gitlab/map.jinja" import gitlab with context %}
 {% if grains['os_family'] == 'Debian' %}
+
+{%- set config_path = config_path %}
+{%- set installed_services = salt['file.find'](config_path ~ "/salt/services/", print="name") %}
+{%- set services = gitlab.runner.services | map(attribute='name')|list %}
+{%- set services_to_delete = installed_services | difference(services) %}
 gitlab-runner repo:
   pkgrepo.managed:
     - humanname: gitlab-runner debian repo
@@ -20,35 +24,33 @@ gitlab-install_pkg:
       - gitlab-runner: {{gitlab.runner.downloadpath}}
 {% endif %}
 
+# Needed for deserialize toml config file
 gitlab-instal-pytoml:
   pkg.installed:
     - name: {{ gitlab.runner.pytoml }}
 
 gitlab-runner-directory-services:
   file.directory:
-    - name: {{ gitlab.runner.config_path }}/salt/services
+    - name: {{ config_path }}/salt/services
     - makedirs: True
 
 gitlab-runner-directory-runners:
   file.directory:
-    - name: {{ gitlab.runner.config_path }}/salt/runners
+    - name: {{ config_path }}/salt/runners
     - makedirs: True
 
-{% set installed_services = salt['file.find'](gitlab.runner.config_path ~ "/salt/services/", print="name") %}
-{% set services = gitlab.runner.services | map(attribute='name')|list %}
-{% set ss = installed_services | difference(services) %}
-{% for uneeded_service in ss if ss[0]  %}
-gitlab-runner-uninstall-uneeded_{{ uneeded_service }}:
+{% for deleted_service in services_to_delete if services_to_delete[0]  %}
+gitlab-runner-uninstall-deleted_{{ deleted_service }}:
   cmd.run:
-    - name: gitlab-runner uninstall --service {{ uneeded_service }}
-    - onlyif: gitlab-runner status --service {{ uneeded_service }} 
+    - name: gitlab-runner uninstall --service {{ deleted_service }}
+    - onlyif: gitlab-runner status --service {{ deleted_service }} 
 
-gitlab-runner-remove-uneeded_{{ uneeded_service }}:
+gitlab-runner-remove-deleted_{{ deleted_service }}:
   file.absent:
-    - name: {{ gitlab.runner.config_path }}/salt/services/{{ uneeded_service }}
+    - name: {{ config_path }}/salt/services/{{ deleted_service }}
 
 {% endfor %}
-{%- for service in gitlab.runner.services %}
+{%- for service in services %}
 {%- set group = service.group|default(service.username, true) %}
 {%- set home = service.home|default("/home/" ~ service.username, true) %}
 {%- set working_directory = service.working_directory|default(home, true) %}
@@ -66,7 +68,7 @@ gitlab-runner-uninstall_{{ service.name }}:
 
 gitlab-runner-install-template_{{ service.name }}:
   file.managed:
-    - name: {{ gitlab.runner.config_path }}/salt/services/{{service.name }}
+    - name: {{ config_path }}/salt/services/{{service.name }}
     - mode: 700
     - source: salt://gitlab/scripts/install-service.sh.j2
     - template: jinja
@@ -76,7 +78,7 @@ gitlab-runner-install-template_{{ service.name }}:
 
 gitlab-runner-install_{{ service.name }}:
   cmd.script:
-    - name: {{ gitlab.runner.config_path }}/salt/services/{{ service.name }}
+    - name: {{ config_path }}/salt/services/{{ service.name }}
     - require:
       - cmd: gitlab-runner-uninstall_{{ service.name }}
     - onchanges:
@@ -101,14 +103,14 @@ gitlab-install_runserver_create_user_{{ service.name }}_{{ service.username }}:
 {% endif %}
 
 {% for runner in service.runners if service.runners %}
-{% if salt['file.file_exists'](gitlab.runner.config_path ~ '/salt/runners/' ~  service.name ~ '_' ~ runner.name) %}
+{% if salt['file.file_exists'](config_path ~ '/salt/runners/' ~  service.name ~ '_' ~ runner.name) %}
 gitlab-runner-verify_{{ service.name }}_{{ runner.name }}:
   cmd.run:
-    - name: gitlab-runner verify -c {{ gitlab.runner.config_path }}/{{ service.name }}.toml -n {{ runner.name }} --delete 2> /tmp/runner_verify
+    - name: gitlab-runner verify -c {{ config_path }}/{{ service.name }}.toml -n {{ runner.name }} --delete 2> /tmp/runner_verify
 
 gitlab-runner-template-remove_{{ service.name }}_{{ runner.name }}:
   cmd.run:
-    - name: rm {{ gitlab.runner.config_path }}/salt/runners/{{ service.name }}_{{ runner.name }}
+    - name: rm {{ config_path }}/salt/runners/{{ service.name }}_{{ runner.name }}
     - onlyif: grep "Verifying runner... is removed" /tmp/runner_verify
     - require:
       - cmd: gitlab-runner-verify_{{ service.name }}_{{ runner.name }}
@@ -117,7 +119,7 @@ gitlab-runner-template-remove_{{ service.name }}_{{ runner.name }}:
 
 gitlab-runner-template_{{ service.name }}_{{ runner.name }}:
   file.managed:
-    - name: {{ gitlab.runner.config_path }}/salt/runners/{{ service.name }}_{{ runner.name }}
+    - name: {{ config_path }}/salt/runners/{{ service.name }}_{{ runner.name }}
     - source: salt://gitlab/scripts/runner-register.sh.j2
     - template: jinja
     - mode: 700
@@ -133,20 +135,21 @@ gitlab-runner-template_{{ service.name }}_{{ runner.name }}:
 
 gitlab-runner-register_{{ service.name }}_{{ runner.name }}:
   cmd.script:
-    - name: {{ gitlab.runner.config_path }}/salt/runners/{{ service.name }}_{{ runner.name }}
+    - name: {{ config_path }}/salt/runners/{{ service.name }}_{{ runner.name }}
     - require_in:
       - service: gitlab-service_{{ service.name}}
     - onchanges:
       - file: gitlab-runner-template_{{ service.name }}_{{ runner.name }}
 
 {% endfor %}
-{% if salt['file.file_exists']( gitlab.runner.config_path ~ '/' ~ service.name  ~ '.toml') %}
-{% set installed_runners = salt['slsutil.deserialize']('toml', salt['file.read']( gitlab.runner.config_path ~ '/' ~ service.name  ~ '.toml')).runners|map(attribute='name')|list if service.runners else [] %}
+
+{% if salt['file.file_exists']( config_path ~ '/' ~ service.name  ~ '.toml') %}
+{% set installed_runners = salt['slsutil.deserialize']('toml', salt['file.read']( config_path ~ '/' ~ service.name  ~ '.toml')).runners|map(attribute='name')|list if service.runners else [] %}
 {% set new_runners =  service.runners | map(attribute='name')|list if service.runners %}
-{% for to_remove_runner in  installed_runners | difference(new_runners) %}
-gitlab-unregister-runner_{{ service.name }}_{{ to_remove_runner }}:
+{% for runner_to_remove in  installed_runners | difference(new_runners) %}
+gitlab-unregister-runner_{{ service.name }}_{{ runner_to_remove }}:
   cmd.run:
-    - name: gitlab-runner unregister -c {{ gitlab.runner.config_path }}/{{ service.name }}.toml -n {{ to_remove_runner }}
+    - name: gitlab-runner unregister -c {{ config_path }}/{{ service.name }}.toml -n {{ runner_to_remove }}
 {% endfor %}
 {% endif %}
 
