@@ -1,10 +1,9 @@
 {% from "gitlab/map.jinja" import gitlab with context %}
 {% if grains['os_family'] == 'Debian' %}
 
-{%- set config_path = config_path %}
+{%- set config_path = gitlab.runner.config_path %}
 {%- set installed_services = salt['file.find'](config_path ~ "/salt/services/", print="name") %}
-{%- set services = gitlab.runner.services | map(attribute='name')|list %}
-{%- set services_to_delete = installed_services | difference(services) %}
+{%- set services_to_delete = installed_services | difference(gitlab.runner.services | map(attribute='name')) %}
 gitlab-runner repo:
   pkgrepo.managed:
     - humanname: gitlab-runner debian repo
@@ -50,7 +49,7 @@ gitlab-runner-remove-deleted_{{ deleted_service }}:
     - name: {{ config_path }}/salt/services/{{ deleted_service }}
 
 {% endfor %}
-{%- for service in services %}
+{%- for service in gitlab.runner.services %}
 {%- set group = service.group|default(service.username, true) %}
 {%- set home = service.home|default("/home/" ~ service.username, true) %}
 {%- set working_directory = service.working_directory|default(home, true) %}
